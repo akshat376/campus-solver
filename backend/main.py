@@ -1,16 +1,15 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, BackgroundTasks
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from datetime import datetime, timezone
-import uuid, os, shutil, asyncio
+import uuid, os, shutil
 from dotenv import load_dotenv
 
 load_dotenv()
 
 from model import load_model, predict
 from database import SessionLocal, Problem
-from email_service import send_complaint_email
 
 app = FastAPI(title="Campus Problem Solver API")
 
@@ -93,18 +92,6 @@ async def submit_problem(
     db.commit()
     db.close()
 
-    # Run email in a separate thread so it doesn't block but stays alive
-    loop = asyncio.get_event_loop()
-    loop.run_in_executor(None, lambda: send_complaint_email(
-        problem_id=tracking_id,
-        description=description.strip(),
-        category=category,
-        department=department,
-        confidence=confidence,
-        student_name=student_name.strip(),
-        student_email=student_email.strip().lower(),
-    ))
-
     return {
         "id":         tracking_id,
         "category":   category,
@@ -181,18 +168,3 @@ def get_stats():
         "in_progress": in_progress, "resolved": resolved,
         "by_department": by_dept,
     }
-
-
-# ── Test endpoint to verify email is working ──────────────────────────────────
-@app.get("/test-email")
-def test_email():
-    result = send_complaint_email(
-        problem_id="TEST001",
-        description="This is a test complaint to verify email delivery.",
-        category="Other",
-        department="Admin",
-        confidence=99.0,
-        student_name="Test User",
-        student_email="test@iiitranchi.ac.in",
-    )
-    return {"email_sent": result}
