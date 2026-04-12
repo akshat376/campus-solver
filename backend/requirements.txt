@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+scikit-learn
+scipy
+numpy
+python-multipart
+python-dotenv

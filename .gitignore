@@ -1,0 +1,15 @@
+# Backend
+__pycache__/
+*.pyc
+uploads/*
+uploaded_images/*
+.env
+problems.db
+
+!backend/uploads/.gitkeep
+!backend/uploaded_images/.gitkeep
+
+# Frontend
+node_modules/
+dist/
+.DS_Store
