@@ -7,18 +7,16 @@ export default function MyProblems() {
   const [loading,  setLoading]  = useState(true)
   const [error,    setError]    = useState('')
   const [search,   setSearch]   = useState('')
-  const [lightbox, setLightbox] = useState(null)   // URL of full-size image
+  const [lightbox, setLightbox] = useState(null)
 
   const myIds = JSON.parse(localStorage.getItem('my_ids') || '[]')
 
   async function fetchProblems() {
-    setLoading(true)
-    setError('')
+    setLoading(true); setError('')
     try {
       const all  = await api.getAll()
-      const mine = all.filter(p => myIds.includes(p.id))
-      setProblems(mine)
-    } catch (err) {
+      setProblems(all.filter(p => myIds.includes(p.id)))
+    } catch {
       setError('Could not load problems. Is the backend running?')
     } finally {
       setLoading(false)
@@ -34,7 +32,6 @@ export default function MyProblems() {
 
   return (
     <div>
-      {/* Lightbox */}
       {lightbox && (
         <div className="lightbox-overlay" onClick={() => setLightbox(null)}>
           <img src={lightbox} alt="Full size" className="lightbox-img" onClick={e => e.stopPropagation()} />
@@ -44,7 +41,7 @@ export default function MyProblems() {
 
       <div className="page-header">
         <h1>My Problems</h1>
-        <p>Track the status of all problems you've submitted this session.</p>
+        <p>Track complaints you've submitted this session.</p>
       </div>
 
       <div className="filters">
@@ -53,7 +50,7 @@ export default function MyProblems() {
           placeholder="Search by ID or description…"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          style={{ maxWidth: 300 }}
+          style={{ maxWidth: 280 }}
         />
         <div className="spacer" />
         <span style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
@@ -96,16 +93,10 @@ export default function MyProblems() {
 
             <p className="desc">{p.description}</p>
 
-            {/* Attached photo thumbnail */}
             {imgUrl && (
               <div className="card-photo-wrap">
-                <img
-                  src={imgUrl}
-                  alt="Attached photo"
-                  className="card-photo"
-                  onClick={() => setLightbox(imgUrl)}
-                  title="Click to enlarge"
-                />
+                <img src={imgUrl} alt="Attached" className="card-photo"
+                  onClick={() => setLightbox(imgUrl)} title="Click to enlarge" />
                 <span className="card-photo-label">📎 Attached photo</span>
               </div>
             )}
@@ -116,8 +107,8 @@ export default function MyProblems() {
             </div>
 
             <div style={{ marginTop: 10 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                <span>confidence</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', marginBottom: 4 }}>
+                <span>Confidence</span>
                 <span>{(p.confidence ?? 0).toFixed(1)}%</span>
               </div>
               <div className="conf-bar-track">
@@ -127,7 +118,7 @@ export default function MyProblems() {
 
             {p.response && (
               <div className="response-box">
-                💬 <strong>Department:</strong> {p.response}
+                💬 <strong>Department response:</strong> {p.response}
               </div>
             )}
           </div>
