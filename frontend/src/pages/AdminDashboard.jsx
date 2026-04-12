@@ -4,11 +4,10 @@ import { timeAgo, statusBadgeClass, confBarClass } from '../utils'
 
 const ADMIN_PASSWORD = 'admin123'
 const STATUS_OPTIONS = ['Submitted', 'In Progress', 'Resolved']
-const DEPTS          = ['All', 'Maintenance', 'Mess Committee', 'Academic Office', 'Security', 'Admin']
+const DEPTS = ['All', 'Maintenance', 'Mess Committee', 'Academic Office', 'Security', 'Admin']
 
-// ── Login ────────────────────────────────────────────────────────────────────
 function LoginScreen({ onLogin }) {
-  const [pwd,   setPwd]   = useState('')
+  const [pwd, setPwd] = useState('')
   const [error, setError] = useState('')
 
   function handleLogin(e) {
@@ -19,29 +18,36 @@ function LoginScreen({ onLogin }) {
 
   return (
     <div className="auth-wrapper">
-      <div className="auth-card">
-        <h2>Admin Login</h2>
-        <p>Enter your admin password to access the dashboard.</p>
-        <form onSubmit={handleLogin}>
-          <div className="form-group">
-            <label>Password</label>
-            <input
-              type="password"
-              value={pwd}
-              onChange={e => { setPwd(e.target.value); setError('') }}
-              placeholder="Enter password…"
-              autoFocus
-            />
+      <div className="auth-split" style={{ maxWidth: 560 }}>
+        <div className="auth-brand" style={{ width: 220 }}>
+          <div>
+            <div className="auth-brand-logo" style={{ fontSize: 18 }}>🏫 Campus<span>Solve</span></div>
+            <h2 style={{ fontSize: 20, marginTop: 16 }}>Admin Access</h2>
+            <p>Manage and respond to student complaints.</p>
           </div>
-          {error && <div className="alert alert-error">{error}</div>}
-          <button type="submit" className="btn btn-primary btn-full">→ Login</button>
-        </form>
+          <div className="auth-brand-footer">Restricted access only</div>
+        </div>
+        <div className="auth-form-panel">
+          <h3>Admin Login</h3>
+          <p>Enter your admin password to continue.</p>
+          <form onSubmit={handleLogin}>
+            <div className="form-group">
+              <label>Password</label>
+              <input
+                type="password" value={pwd}
+                onChange={e => { setPwd(e.target.value); setError('') }}
+                placeholder="Enter password…" autoFocus
+              />
+            </div>
+            {error && <div className="alert alert-error">{error}</div>}
+            <button type="submit" className="btn btn-primary btn-full">Login →</button>
+          </form>
+        </div>
       </div>
     </div>
   )
 }
 
-// ── Problem Row ──────────────────────────────────────────────────────────────
 function ProblemRow({ problem, onUpdated, onLightbox }) {
   const [expanded, setExpanded] = useState(problem.status === 'Submitted')
   const [status,   setStatus]   = useState(problem.status)
@@ -53,18 +59,13 @@ function ProblemRow({ problem, onUpdated, onLightbox }) {
     setSaving(true)
     try {
       await api.update(problem.id, status, response)
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2500)
-      onUpdated()
-    } catch (err) {
-      alert('Update failed: ' + err.message)
-    } finally {
-      setSaving(false)
-    }
+      setSaved(true); setTimeout(() => setSaved(false), 2500); onUpdated()
+    } catch (err) { alert('Update failed: ' + err.message) }
+    finally { setSaving(false) }
   }
 
-  const p      = problem
-  const conf   = p.confidence ?? 0
+  const p = problem
+  const conf = p.confidence ?? 0
   const imgUrl = api.imageUrl(p.image_path)
 
   return (
@@ -84,16 +85,16 @@ function ProblemRow({ problem, onUpdated, onLightbox }) {
 
       <p className="desc">{p.description}</p>
 
-      {/* Attached photo */}
+      {p.student_name && (
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', marginBottom: 6 }}>
+          👤 {p.student_name} · {p.student_email}
+        </div>
+      )}
+
       {imgUrl && (
         <div className="card-photo-wrap">
-          <img
-            src={imgUrl}
-            alt="Attached"
-            className="card-photo"
-            onClick={() => onLightbox(imgUrl)}
-            title="Click to enlarge"
-          />
+          <img src={imgUrl} alt="Attached" className="card-photo"
+            onClick={() => onLightbox(imgUrl)} title="Click to enlarge" />
           <span className="card-photo-label">📎 Attached photo</span>
         </div>
       )}
@@ -126,16 +127,12 @@ function ProblemRow({ problem, onUpdated, onLightbox }) {
           </div>
           <div>
             <label>Response</label>
-            <input
-              type="text"
-              value={response}
-              onChange={e => setResponse(e.target.value)}
-              placeholder="Add a response for the student…"
-            />
+            <input type="text" value={response} onChange={e => setResponse(e.target.value)}
+              placeholder="Write a response for the student…" />
           </div>
           <div>
             <label>&nbsp;</label>
-            <button className="btn btn-primary" onClick={handleUpdate} disabled={saving}>
+            <button className="btn btn-primary btn-sm" onClick={handleUpdate} disabled={saving}>
               {saving ? '…' : saved ? '✓ Saved' : '↑ Update'}
             </button>
           </div>
@@ -145,7 +142,6 @@ function ProblemRow({ problem, onUpdated, onLightbox }) {
   )
 }
 
-// ── Main Dashboard ───────────────────────────────────────────────────────────
 export default function AdminDashboard() {
   const [authed,       setAuthed]       = useState(false)
   const [problems,     setProblems]     = useState([])
@@ -157,17 +153,12 @@ export default function AdminDashboard() {
   const [lightbox,     setLightbox]     = useState(null)
 
   async function fetchData() {
-    setLoading(true)
-    setError('')
+    setLoading(true); setError('')
     try {
       const [all, s] = await Promise.all([api.getAll(), api.stats()])
-      setProblems(all)
-      setStats(s)
-    } catch (err) {
-      setError('Could not load data. Is the backend running?')
-    } finally {
-      setLoading(false)
-    }
+      setProblems(all); setStats(s)
+    } catch { setError('Could not load data. Is the backend running?') }
+    finally { setLoading(false) }
   }
 
   useEffect(() => { if (authed) fetchData() }, [authed])
@@ -182,7 +173,6 @@ export default function AdminDashboard() {
 
   return (
     <div>
-      {/* Lightbox */}
       {lightbox && (
         <div className="lightbox-overlay" onClick={() => setLightbox(null)}>
           <img src={lightbox} alt="Full size" className="lightbox-img" onClick={e => e.stopPropagation()} />
@@ -207,16 +197,16 @@ export default function AdminDashboard() {
             <div className="value">{stats.total}</div>
           </div>
           <div className="metric-card">
-            <span className="label" style={{ color: '#7eaaff' }}>Submitted</span>
-            <div className="value" style={{ color: '#7eaaff' }}>{stats.submitted}</div>
+            <span className="label" style={{ color: '#1d4ed8' }}>Submitted</span>
+            <div className="value" style={{ color: '#1d4ed8' }}>{stats.submitted}</div>
           </div>
           <div className="metric-card">
-            <span className="label" style={{ color: '#fbbf24' }}>In Progress</span>
-            <div className="value" style={{ color: '#fbbf24' }}>{stats.in_progress}</div>
+            <span className="label" style={{ color: '#92400e' }}>In Progress</span>
+            <div className="value" style={{ color: '#92400e' }}>{stats.in_progress}</div>
           </div>
           <div className="metric-card">
-            <span className="label" style={{ color: '#34d399' }}>Resolved</span>
-            <div className="value" style={{ color: '#34d399' }}>{stats.resolved}</div>
+            <span className="label" style={{ color: '#065f46' }}>Resolved</span>
+            <div className="value" style={{ color: '#065f46' }}>{stats.resolved}</div>
           </div>
         </div>
       )}
