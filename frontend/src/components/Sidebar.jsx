@@ -6,6 +6,10 @@ const links = [
   { to: '/admin', icon: '⬡', label: 'Admin Dashboard' },
 ]
 
+function initials(name) {
+  return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+}
+
 export default function Sidebar({ user, onLogout }) {
   return (
     <aside className="sidebar">
@@ -13,40 +17,7 @@ export default function Sidebar({ user, onLogout }) {
         🏫 Campus<span>Solve</span>
       </div>
 
-      {/* Logged-in user info */}
-      {user && (
-        <div style={{
-          margin: '0 0 16px',
-          padding: '10px 14px',
-          background: 'var(--surface-2, #1e2130)',
-          borderRadius: 8,
-          border: '1px solid var(--border, #2a2d3a)',
-        }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 2 }}>
-            {user.name}
-          </div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', wordBreak: 'break-all' }}>
-            {user.email}
-          </div>
-          <button
-            onClick={onLogout}
-            style={{
-              marginTop: 8,
-              fontSize: 11,
-              color: 'var(--text-muted)',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: 0,
-              textDecoration: 'underline',
-            }}
-          >
-            Sign out
-          </button>
-        </div>
-      )}
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <nav className="nav-section">
         {links.map(({ to, icon, label }) => (
           <NavLink
             key={to}
@@ -54,15 +25,27 @@ export default function Sidebar({ user, onLogout }) {
             end={to === '/'}
             className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
           >
-            <span className="icon" style={{ fontStyle: 'normal', fontSize: 13 }}>{icon}</span>
+            <span style={{ fontSize: 13, width: 18, textAlign: 'center', flexShrink: 0 }}>{icon}</span>
             {label}
           </NavLink>
         ))}
-      </div>
+      </nav>
+
+      {user && (
+        <div className="sidebar-user">
+          <div className="sidebar-user-info">
+            <div className="sidebar-avatar">{initials(user.name)}</div>
+            <div>
+              <div className="sidebar-user-name">{user.name}</div>
+              <div className="sidebar-user-email">{user.email}</div>
+            </div>
+          </div>
+          <button className="sidebar-logout" onClick={onLogout}>Sign out</button>
+        </div>
+      )}
 
       <div className="sidebar-footer">
-        AI-powered routing<br />
-        v2.0 · 2025
+        AI-powered routing<br />v2.0 · 2025
       </div>
     </aside>
   )
