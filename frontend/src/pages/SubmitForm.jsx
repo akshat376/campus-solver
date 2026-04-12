@@ -7,6 +7,15 @@ const MAX_LEN = 500
 const MAX_MB  = 5
 const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 
+const CATEGORY_ICONS = {
+  'Bathroom & Hygiene': '🚿',
+  'Infrastructure/Maintenance': '🔧',
+  'Mess & Food Quality': '🍽️',
+  'Academic Issues': '📚',
+  'Anti-Ragging & Safety': '🛡️',
+  'Other': '📋',
+}
+
 export default function SubmitForm({ user }) {
   const [desc,      setDesc]      = useState('')
   const [imageFile, setImageFile] = useState(null)
@@ -24,14 +33,8 @@ export default function SubmitForm({ user }) {
 
   function handleFile(file) {
     if (!file) return
-    if (!ALLOWED.includes(file.type)) {
-      setError('Only JPEG, PNG, WEBP or GIF images are allowed.')
-      return
-    }
-    if (file.size > MAX_MB * 1024 * 1024) {
-      setError(`Image must be under ${MAX_MB} MB.`)
-      return
-    }
+    if (!ALLOWED.includes(file.type)) { setError('Only JPEG, PNG, WEBP or GIF images are allowed.'); return }
+    if (file.size > MAX_MB * 1024 * 1024) { setError(`Image must be under ${MAX_MB} MB.`); return }
     setError('')
     setImageFile(file)
     setPreview(URL.createObjectURL(file))
@@ -45,31 +48,19 @@ export default function SubmitForm({ user }) {
   }
 
   const onDrop = useCallback((e) => {
-    e.preventDefault()
-    setDragging(false)
+    e.preventDefault(); setDragging(false)
     const file = e.dataTransfer.files?.[0]
     if (file) handleFile(file)
   }, [])
 
-  const onDragOver  = (e) => { e.preventDefault(); setDragging(true) }
-  const onDragLeave = ()  => setDragging(false)
-
   async function handleSubmit(e) {
     e.preventDefault()
-    setError('')
-    setResult(null)
-    if (desc.trim().length < MIN_LEN) {
-      setError(`Please describe the problem in at least ${MIN_LEN} characters.`)
-      return
-    }
+    setError(''); setResult(null)
+    if (desc.trim().length < MIN_LEN) { setError(`Describe the problem in at least ${MIN_LEN} characters.`); return }
     setLoading(true)
     try {
-      // Pass user name + email with the submission
       const data = await api.submit(desc.trim(), imageFile, user.name, user.email)
-      setResult(data)
-      saveId(data.id)
-      setDesc('')
-      removeImage()
+      setResult(data); saveId(data.id); setDesc(''); removeImage()
     } catch (err) {
       setError(err.message || 'Failed to submit. Is the backend running?')
     } finally {
@@ -78,30 +69,31 @@ export default function SubmitForm({ user }) {
   }
 
   const conf = result?.confidence ?? 0
+  const catIcon = result ? (CATEGORY_ICONS[result.category] || '📋') : ''
 
   return (
     <div>
       <div className="page-header">
         <h1>Submit a Problem</h1>
         <p>
-          Submitting as <strong style={{ color: 'var(--accent, #7eaaff)' }}>{user.name}</strong>
-          <span style={{ color: 'var(--text-muted)', fontFamily: 'monospace', fontSize: 12, marginLeft: 6 }}>
+          Submitting as <strong>{user.name}</strong>
+          <span style={{ color: 'var(--text-subtle)', fontFamily: 'var(--font-mono)', fontSize: 12, marginLeft: 6 }}>
             ({user.email})
           </span>
         </p>
       </div>
 
       <div className="card">
-        <div className="card-title">New complaint</div>
+        <div className="card-title">New Complaint</div>
         <form onSubmit={handleSubmit}>
 
           <div className="form-group">
-            <label htmlFor="desc">Problem Description</label>
+            <label htmlFor="desc">Description</label>
             <textarea
               id="desc"
               value={desc}
               onChange={e => setDesc(e.target.value)}
-              placeholder="e.g. The bathroom on the 3rd floor of Block A has had no water since yesterday morning..."
+              placeholder="Describe the issue clearly — e.g. 'The bathroom on 3rd floor of Block A has had no water since yesterday morning.'"
               maxLength={MAX_LEN}
               disabled={loading}
             />
@@ -109,37 +101,25 @@ export default function SubmitForm({ user }) {
           </div>
 
           <div className="form-group">
-            <label>Photo (optional)</label>
+            <label>Photo <span style={{ color: 'var(--text-subtle)', fontWeight: 400 }}>(optional)</span></label>
             {!preview ? (
               <div
                 className={`upload-zone${dragging ? ' dragging' : ''}`}
                 onClick={() => fileRef.current?.click()}
                 onDrop={onDrop}
-                onDragOver={onDragOver}
-                onDragLeave={onDragLeave}
+                onDragOver={e => { e.preventDefault(); setDragging(true) }}
+                onDragLeave={() => setDragging(false)}
               >
                 <div className="upload-icon">📷</div>
-                <div className="upload-text">
-                  Drop an image here or <span className="upload-link">browse</span>
-                </div>
-                <div className="upload-hint">JPEG · PNG · WEBP · GIF &nbsp;·&nbsp; max {MAX_MB} MB</div>
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif"
-                  style={{ display: 'none' }}
-                  onChange={e => handleFile(e.target.files?.[0])}
-                />
+                <div className="upload-text">Drop an image here or <span className="upload-link">browse</span></div>
+                <div className="upload-hint">JPEG · PNG · WEBP · GIF · max {MAX_MB} MB</div>
+                <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif"
+                  style={{ display: 'none' }} onChange={e => handleFile(e.target.files?.[0])} />
               </div>
             ) : (
               <div className="image-preview-wrap">
                 <img src={preview} alt="Attached" className="image-preview" />
-                <button
-                  type="button"
-                  className="image-remove-btn"
-                  onClick={removeImage}
-                  title="Remove photo"
-                >✕</button>
+                <button type="button" className="image-remove-btn" onClick={removeImage} title="Remove">✕</button>
                 <div className="image-filename">{imageFile?.name}</div>
               </div>
             )}
@@ -155,7 +135,7 @@ export default function SubmitForm({ user }) {
           >
             {loading
               ? <><span className="spinner" style={{ borderTopColor: '#fff' }} /> Submitting…</>
-              : '→ Submit Problem'
+              : 'Submit Problem →'
             }
           </button>
         </form>
@@ -164,7 +144,7 @@ export default function SubmitForm({ user }) {
       {result && (
         <div className="result-card">
           <div className="alert alert-success" style={{ marginBottom: 20 }}>
-            ✓ Problem submitted — routed automatically.
+            ✓ Complaint submitted and routed automatically.
           </div>
 
           <div className="result-grid">
@@ -174,20 +154,20 @@ export default function SubmitForm({ user }) {
             </div>
             <div className="result-item">
               <div className="rlabel">Category</div>
-              <div className="rvalue" style={{ fontSize: 14, fontWeight: 600 }}>{result.category}</div>
+              <div className="rvalue">{catIcon} {result.category}</div>
             </div>
             <div className="result-item">
               <div className="rlabel">Routed To</div>
-              <div className="rvalue" style={{ fontSize: 14, fontWeight: 600 }}>{result.department}</div>
+              <div className="rvalue">{result.department}</div>
             </div>
           </div>
 
           <div className="divider" />
 
-          <div style={{ marginBottom: 6 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-muted)', marginBottom: 2, textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-muted)', marginBottom: 6, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
               <span>AI Confidence</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 500 }}>{conf.toFixed(1)}%</span>
+              <span style={{ fontWeight: 600 }}>{conf.toFixed(1)}%</span>
             </div>
             <div className="conf-bar-track" style={{ height: 6 }}>
               <div className={confBarClass(conf)} style={{ width: `${Math.min(conf, 100)}%` }} />
@@ -201,8 +181,7 @@ export default function SubmitForm({ user }) {
           )}
 
           <div className="alert alert-info" style={{ marginTop: 14, marginBottom: 0 }}>
-            A notification email has been sent to the <strong>{result.department}</strong> department.
-            They can reply directly to <strong style={{ fontFamily: 'monospace' }}>{user.email}</strong>.
+            Save your tracking ID <strong style={{ fontFamily: 'var(--font-mono)' }}>{result.id}</strong> — check status under <strong>My Problems</strong>.
           </div>
         </div>
       )}
