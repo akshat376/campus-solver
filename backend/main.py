@@ -20,7 +20,7 @@ app.mount("/images", StaticFiles(directory=UPLOAD_DIR), name="images")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "https://campus-solver-upzz.vercel.app/"],
+    allow_origins=["http://localhost:5173", "https://campus-solver-upzz.vercel.app"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
