@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -39,6 +39,8 @@ DEPARTMENT_MAP = {
     "Other":                      "Admin",
 }
 
+ALLOWED_DOMAIN = "iiitranchi.ac.in"
+
 def route(category: str) -> str:
     return DEPARTMENT_MAP.get(category, "Admin")
 
@@ -49,15 +51,15 @@ class UpdateRequest(BaseModel):
 
 @app.post("/submit")
 async def submit_problem(
-    description:   str            = Form(...),
-    student_name:  str            = Form(default=""),
-    student_email: str            = Form(default=""),
+    background_tasks: BackgroundTasks,           # ← added
+    description:   str               = Form(...),
+    student_name:  str               = Form(default=""),
+    student_email: str               = Form(default=""),
     image:         UploadFile | None = File(default=None),
 ):
     if not description or len(description.strip()) < 5:
         raise HTTPException(status_code=400, detail="Description too short.")
 
-    ALLOWED_DOMAIN = "iiitranchi.ac.in"
     if not student_email.strip().lower().endswith(f"@{ALLOWED_DOMAIN}"):
         raise HTTPException(status_code=400, detail=f"Only @{ALLOWED_DOMAIN} email addresses are allowed.")
 
@@ -92,7 +94,9 @@ async def submit_problem(
     db.commit()
     db.close()
 
-    send_complaint_email(
+    # ── Fire email in background — API responds immediately ──────────────────
+    background_tasks.add_task(
+        send_complaint_email,
         problem_id=tracking_id,
         description=description.strip(),
         category=category,
