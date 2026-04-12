@@ -184,6 +184,26 @@ allow_origins=[
 
 ---
 
+## Model Performance
+
+The complaint classifier was evaluated using 5-fold cross-validation:
+
+| Metric | Score |
+|---|---|
+| Mean Accuracy | 98.77% |
+| Macro F1 Score | 98.77% |
+| Std Deviation | ± 0.59% |
+
+| Fold | Accuracy |
+|---|---|
+| Fold 1 | 99.64% |
+| Fold 2 | 98.55% |
+| Fold 3 | 98.91% |
+| Fold 4 | 98.91% |
+| Fold 5 | 97.83% |
+
+---
+
 ## Tech Stack
 
 **Frontend** — React 18, React Router, Vite
