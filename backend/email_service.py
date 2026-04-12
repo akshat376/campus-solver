@@ -120,7 +120,7 @@ Or log in to the Admin Dashboard: http://localhost:5173/admin
       </div>
 
       <div style="margin-top:20px;text-align:center;">
-        <a href="http://localhost:5173/admin"
+        <a href="https://campus-solver-upzz.vercel.app/"
            style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;padding:11px 28px;border-radius:6px;font-size:14px;font-weight:600;">
           → Open Admin Dashboard
         </a>
