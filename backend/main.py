@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from datetime import datetime, timezone
-import uuid, os, shutil
+import uuid, os, shutil, asyncio
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -51,7 +51,6 @@ class UpdateRequest(BaseModel):
 
 @app.post("/submit")
 async def submit_problem(
-    background_tasks: BackgroundTasks,           # ← added
     description:   str               = Form(...),
     student_name:  str               = Form(default=""),
     student_email: str               = Form(default=""),
@@ -94,9 +93,9 @@ async def submit_problem(
     db.commit()
     db.close()
 
-    # ── Fire email in background — API responds immediately ──────────────────
-    background_tasks.add_task(
-        send_complaint_email,
+    # Run email in a separate thread so it doesn't block but stays alive
+    loop = asyncio.get_event_loop()
+    loop.run_in_executor(None, lambda: send_complaint_email(
         problem_id=tracking_id,
         description=description.strip(),
         category=category,
@@ -104,7 +103,7 @@ async def submit_problem(
         confidence=confidence,
         student_name=student_name.strip(),
         student_email=student_email.strip().lower(),
-    )
+    ))
 
     return {
         "id":         tracking_id,
@@ -182,3 +181,18 @@ def get_stats():
         "in_progress": in_progress, "resolved": resolved,
         "by_department": by_dept,
     }
+
+
+# ── Test endpoint to verify email is working ──────────────────────────────────
+@app.get("/test-email")
+def test_email():
+    result = send_complaint_email(
+        problem_id="TEST001",
+        description="This is a test complaint to verify email delivery.",
+        category="Other",
+        department="Admin",
+        confidence=99.0,
+        student_name="Test User",
+        student_email="test@iiitranchi.ac.in",
+    )
+    return {"email_sent": result}
