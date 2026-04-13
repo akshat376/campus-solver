@@ -229,15 +229,24 @@ export default function AdminDashboard() {
       )}
 
       <div className="filters">
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-          {['All', ...STATUS_OPTIONS].map(s => <option key={s}>{s}</option>)}
-        </select>
-        <select value={filterDept} onChange={e => setFilterDept(e.target.value)}>
-          {DEPTS.map(d => <option key={d}>{d}</option>)}
-        </select>
-        <select value={filterUrgency} onChange={e => setFilterUrgency(e.target.value)}>
-          {URGENCIES.map(u => <option key={u}>{u}</option>)}
-        </select>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>Status</span>
+          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+            {['All', ...STATUS_OPTIONS].map(s => <option key={s}>{s}</option>)}
+          </select>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>Department</span>
+          <select value={filterDept} onChange={e => setFilterDept(e.target.value)}>
+            {DEPTS.map(d => <option key={d}>{d}</option>)}
+          </select>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>Urgency</span>
+          <select value={filterUrgency} onChange={e => setFilterUrgency(e.target.value)}>
+            {URGENCIES.map(u => <option key={u}>{u}</option>)}
+          </select>
+        </div>
         <div className="spacer" />
         <span style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
           {sorted.length} / {problems.length}
