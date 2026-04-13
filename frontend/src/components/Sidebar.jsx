@@ -10,7 +10,7 @@ function initials(name) {
   return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
 }
 
-export default function Sidebar({ user, onLogout }) {
+export default function Sidebar({ user, onLogout, darkMode, onToggleTheme }) {
   return (
     <aside className="sidebar">
       <div className="sidebar-logo">
@@ -20,9 +20,7 @@ export default function Sidebar({ user, onLogout }) {
       <nav className="nav-section">
         {links.map(({ to, icon, label }) => (
           <NavLink
-            key={to}
-            to={to}
-            end={to === '/'}
+            key={to} to={to} end={to === '/'}
             className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
           >
             <span style={{ fontSize: 13, width: 18, textAlign: 'center', flexShrink: 0 }}>{icon}</span>
@@ -30,6 +28,17 @@ export default function Sidebar({ user, onLogout }) {
           </NavLink>
         ))}
       </nav>
+
+      {/* Dark mode toggle */}
+      <button className="theme-toggle" onClick={onToggleTheme} title="Toggle theme">
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span>{darkMode ? '🌙' : '☀️'}</span>
+          <span>{darkMode ? 'Dark mode' : 'Light mode'}</span>
+        </span>
+        <div className={`toggle-track${darkMode ? ' on' : ''}`}>
+          <div className="toggle-thumb" />
+        </div>
+      </button>
 
       {user && (
         <div className="sidebar-user">
