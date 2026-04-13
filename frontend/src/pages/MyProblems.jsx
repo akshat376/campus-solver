@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { api } from '../api'
 import { timeAgo, statusBadgeClass, confBarClass } from '../utils'
+import UrgencyBar from '../components/UrgencyBar'
 
 export default function MyProblems() {
   const [problems, setProblems] = useState([])
@@ -14,13 +15,10 @@ export default function MyProblems() {
   async function fetchProblems() {
     setLoading(true); setError('')
     try {
-      const all  = await api.getAll()
+      const all = await api.getAll()
       setProblems(all.filter(p => myIds.includes(p.id)))
-    } catch {
-      setError('Could not load problems. Is the backend running?')
-    } finally {
-      setLoading(false)
-    }
+    } catch { setError('Could not load problems. Is the backend running?') }
+    finally { setLoading(false) }
   }
 
   useEffect(() => { fetchProblems() }, [])
@@ -45,13 +43,8 @@ export default function MyProblems() {
       </div>
 
       <div className="filters">
-        <input
-          type="text"
-          placeholder="Search by ID or description…"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          style={{ maxWidth: 280 }}
-        />
+        <input type="text" placeholder="Search by ID or description…"
+          value={search} onChange={e => setSearch(e.target.value)} style={{ maxWidth: 280 }} />
         <div className="spacer" />
         <span style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
           {filtered.length} / {problems.length}
@@ -70,10 +63,7 @@ export default function MyProblems() {
       )}
 
       {!loading && myIds.length > 0 && filtered.length === 0 && (
-        <div className="empty-state">
-          <span className="icon">🔍</span>
-          <p>No problems match your search.</p>
-        </div>
+        <div className="empty-state"><span className="icon">🔍</span><p>No problems match your search.</p></div>
       )}
 
       {filtered.map(p => {
@@ -85,6 +75,10 @@ export default function MyProblems() {
                 <code>#{p.id}</code>
                 <span className={statusBadgeClass(p.status)}>{p.status}</span>
                 <span className="badge badge-other">{p.department}</span>
+                {p.duplicate_of && (
+                  <span className="badge" style={{ background: 'var(--warning-bg)', color: 'var(--warning)', border: '1px solid var(--warning-border)' }}
+                    title={`Similar to #${p.duplicate_of}`}>⚠ Duplicate</span>
+                )}
               </div>
               <span style={{ fontSize: 11.5, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
                 {timeAgo(p.updated_at)}
@@ -106,10 +100,12 @@ export default function MyProblems() {
               <span>submitted {timeAgo(p.created_at)}</span>
             </div>
 
+            {/* Urgency bar */}
+            <UrgencyBar urgency={p.urgency} />
+
             <div style={{ marginTop: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', marginBottom: 4 }}>
-                <span>Confidence</span>
-                <span>{(p.confidence ?? 0).toFixed(1)}%</span>
+                <span>AI Confidence</span><span>{(p.confidence ?? 0).toFixed(1)}%</span>
               </div>
               <div className="conf-bar-track">
                 <div className={confBarClass(p.confidence ?? 0)} style={{ width: `${Math.min(p.confidence ?? 0, 100)}%` }} />
@@ -117,9 +113,7 @@ export default function MyProblems() {
             </div>
 
             {p.response && (
-              <div className="response-box">
-                💬 <strong>Department response:</strong> {p.response}
-              </div>
+              <div className="response-box">💬 <strong>Department response:</strong> {p.response}</div>
             )}
           </div>
         )
