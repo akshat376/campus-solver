@@ -2,7 +2,7 @@
 Run once from the backend folder:
     python migrate.py
 
-Adds missing columns to the existing problems table.
+Adds all missing columns to the existing problems table.
 Safe to run multiple times.
 """
 import sqlite3, os
@@ -18,6 +18,8 @@ new_columns = {
     "image_path":    "TEXT DEFAULT ''",
     "student_name":  "TEXT DEFAULT ''",
     "student_email": "TEXT DEFAULT ''",
+    "urgency":       "TEXT DEFAULT 'Medium'",
+    "duplicate_of":  "TEXT DEFAULT ''",
 }
 
 for col, definition in new_columns.items():
