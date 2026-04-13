@@ -1,11 +1,12 @@
 """
-Run once from the backend folder:
-    python migrate.py
-
-Adds all missing columns to the existing problems table.
-Safe to run multiple times.
+Runs automatically before uvicorn starts.
+Creates the table if missing, then adds any missing columns.
 """
 import sqlite3, os
+
+# Import database.py first — this runs Base.metadata.create_all()
+# which creates the problems table if it doesn't exist yet
+import database  # noqa: F401
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "problems.db")
 conn = sqlite3.connect(DB_PATH)
@@ -31,4 +32,4 @@ for col, definition in new_columns.items():
 
 conn.commit()
 conn.close()
-print("\nMigration complete.")
+print("Migration complete.")
