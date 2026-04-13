@@ -1,29 +1,39 @@
 import { useState, useRef, useCallback } from 'react'
 import { api } from '../api'
 import { confBarClass } from '../utils'
+import UrgencyBar from '../components/UrgencyBar'
 
-const MIN_LEN = 10
-const MAX_LEN = 500
-const MAX_MB  = 5
-const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+const MIN_LEN  = 10
+const MAX_LEN  = 500
+const MAX_MB   = 5
+const ALLOWED  = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+const URGENCIES = ['Low', 'Medium', 'High', 'Critical']
+
+const URGENCY_DESC = {
+  Low:      'Minor inconvenience, can wait a few days.',
+  Medium:   'Noticeable issue, should be resolved soon.',
+  High:     'Significantly impacts daily life.',
+  Critical: 'Immediate safety or health risk.',
+}
 
 const CATEGORY_ICONS = {
-  'Bathroom & Hygiene': '🚿',
+  'Bathroom & Hygiene':         '🚿',
   'Infrastructure/Maintenance': '🔧',
-  'Mess & Food Quality': '🍽️',
-  'Academic Issues': '📚',
-  'Anti-Ragging & Safety': '🛡️',
-  'Other': '📋',
+  'Mess & Food Quality':        '🍽️',
+  'Academic Issues':            '📚',
+  'Anti-Ragging & Safety':      '🛡️',
+  'Other':                      '📋',
 }
 
 export default function SubmitForm({ user }) {
-  const [desc,      setDesc]      = useState('')
-  const [imageFile, setImageFile] = useState(null)
-  const [preview,   setPreview]   = useState(null)
-  const [dragging,  setDragging]  = useState(false)
-  const [loading,   setLoading]   = useState(false)
-  const [result,    setResult]    = useState(null)
-  const [error,     setError]     = useState('')
+  const [desc,     setDesc]     = useState('')
+  const [urgency,  setUrgency]  = useState('Medium')
+  const [imageFile,setImageFile]= useState(null)
+  const [preview,  setPreview]  = useState(null)
+  const [dragging, setDragging] = useState(false)
+  const [loading,  setLoading]  = useState(false)
+  const [result,   setResult]   = useState(null)
+  const [error,    setError]    = useState('')
   const fileRef = useRef()
 
   function saveId(id) {
@@ -35,9 +45,7 @@ export default function SubmitForm({ user }) {
     if (!file) return
     if (!ALLOWED.includes(file.type)) { setError('Only JPEG, PNG, WEBP or GIF images are allowed.'); return }
     if (file.size > MAX_MB * 1024 * 1024) { setError(`Image must be under ${MAX_MB} MB.`); return }
-    setError('')
-    setImageFile(file)
-    setPreview(URL.createObjectURL(file))
+    setError(''); setImageFile(file); setPreview(URL.createObjectURL(file))
   }
 
   function removeImage() {
@@ -59,8 +67,8 @@ export default function SubmitForm({ user }) {
     if (desc.trim().length < MIN_LEN) { setError(`Describe the problem in at least ${MIN_LEN} characters.`); return }
     setLoading(true)
     try {
-      const data = await api.submit(desc.trim(), imageFile, user.name, user.email)
-      setResult(data); saveId(data.id); setDesc(''); removeImage()
+      const data = await api.submit(desc.trim(), imageFile, user.name, user.email, urgency)
+      setResult(data); saveId(data.id); setDesc(''); removeImage(); setUrgency('Medium')
     } catch (err) {
       setError(err.message || 'Failed to submit. Is the backend running?')
     } finally {
@@ -68,7 +76,7 @@ export default function SubmitForm({ user }) {
     }
   }
 
-  const conf = result?.confidence ?? 0
+  const conf    = result?.confidence ?? 0
   const catIcon = result ? (CATEGORY_ICONS[result.category] || '📋') : ''
 
   return (
@@ -90,16 +98,32 @@ export default function SubmitForm({ user }) {
           <div className="form-group">
             <label htmlFor="desc">Description</label>
             <textarea
-              id="desc"
-              value={desc}
+              id="desc" value={desc}
               onChange={e => setDesc(e.target.value)}
               placeholder="Describe the issue clearly — e.g. 'The bathroom on 3rd floor of Block A has had no water since yesterday morning.'"
-              maxLength={MAX_LEN}
-              disabled={loading}
+              maxLength={MAX_LEN} disabled={loading}
             />
             <div className="char-count">{desc.length} / {MAX_LEN}</div>
           </div>
 
+          {/* Urgency selector */}
+          <div className="form-group">
+            <label>Urgency Level</label>
+            <div className="urgency-selector">
+              {URGENCIES.map(u => (
+                <button
+                  key={u} type="button"
+                  className={`urgency-pill ${u.toLowerCase()}${urgency === u ? ' selected' : ''}`}
+                  onClick={() => setUrgency(u)}
+                >
+                  {u}
+                </button>
+              ))}
+            </div>
+            <div className="field-hint" style={{ marginTop: 8 }}>{URGENCY_DESC[urgency]}</div>
+          </div>
+
+          {/* Photo */}
           <div className="form-group">
             <label>Photo <span style={{ color: 'var(--text-subtle)', fontWeight: 400 }}>(optional)</span></label>
             {!preview ? (
@@ -128,10 +152,8 @@ export default function SubmitForm({ user }) {
           {error && <div className="alert alert-error">{error}</div>}
 
           <button
-            type="submit"
-            className="btn btn-primary btn-full"
-            disabled={loading || desc.trim().length < MIN_LEN}
-            style={{ marginTop: 4 }}
+            type="submit" className="btn btn-primary btn-full"
+            disabled={loading || desc.trim().length < MIN_LEN} style={{ marginTop: 4 }}
           >
             {loading
               ? <><span className="spinner" style={{ borderTopColor: '#fff' }} /> Submitting…</>
@@ -143,6 +165,19 @@ export default function SubmitForm({ user }) {
 
       {result && (
         <div className="result-card">
+
+          {/* Duplicate warning */}
+          {result.duplicate_of && (
+            <div className="duplicate-warning">
+              <span style={{ fontSize: 18 }}>⚠️</span>
+              <div>
+                <strong>Possible duplicate detected.</strong> A similar complaint
+                (<code>#{result.duplicate_of}</code>) already exists. Your complaint has
+                still been submitted and will be reviewed — but it may be merged with the original.
+              </div>
+            </div>
+          )}
+
           <div className="alert alert-success" style={{ marginBottom: 20 }}>
             ✓ Complaint submitted and routed automatically.
           </div>
@@ -163,6 +198,12 @@ export default function SubmitForm({ user }) {
           </div>
 
           <div className="divider" />
+
+          {/* Urgency bar */}
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 10.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.8px', fontWeight: 700, marginBottom: 4 }}>Urgency</div>
+            <UrgencyBar urgency={result.urgency} />
+          </div>
 
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-muted)', marginBottom: 6, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
