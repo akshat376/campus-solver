@@ -38,10 +38,45 @@ DEPARTMENT_MAP = {
     "Other":                      "Admin",
 }
 
-ALLOWED_DOMAIN = "iiitranchi.ac.in"
+ALLOWED_DOMAIN  = "iiitranchi.ac.in"
+VALID_URGENCIES = {"Low", "Medium", "High", "Critical"}
+DUPLICATE_THRESHOLD = 0.82   # cosine similarity score above this = duplicate
 
 def route(category: str) -> str:
     return DEPARTMENT_MAP.get(category, "Admin")
+
+
+def find_duplicate(description: str, db) -> str:
+    """
+    Compare description against all existing complaints using TF-IDF cosine similarity.
+    Returns the ID of the most similar existing complaint if above threshold, else "".
+    """
+    try:
+        from sklearn.metrics.pairwise import cosine_similarity
+        import numpy as np
+
+        existing = db.query(Problem).filter(Problem.duplicate_of == "").all()
+        if not existing:
+            return ""
+
+        existing_descs = [p.description for p in existing]
+        all_texts      = existing_descs + [description]
+
+        tfidf_matrix   = vectorizer.transform(all_texts)
+        new_vec        = tfidf_matrix[-1]
+        existing_vecs  = tfidf_matrix[:-1]
+
+        similarities   = cosine_similarity(new_vec, existing_vecs)[0]
+        best_idx       = int(similarities.argmax())
+        best_score     = float(similarities[best_idx])
+
+        if best_score >= DUPLICATE_THRESHOLD:
+            return existing[best_idx].id
+        return ""
+    except Exception as e:
+        print(f"[duplicate] Detection error: {e}")
+        return ""
+
 
 class UpdateRequest(BaseModel):
     status: str
@@ -53,6 +88,7 @@ async def submit_problem(
     description:   str               = Form(...),
     student_name:  str               = Form(default=""),
     student_email: str               = Form(default=""),
+    urgency:       str               = Form(default="Medium"),
     image:         UploadFile | None = File(default=None),
 ):
     if not description or len(description.strip()) < 5:
@@ -60,6 +96,9 @@ async def submit_problem(
 
     if not student_email.strip().lower().endswith(f"@{ALLOWED_DOMAIN}"):
         raise HTTPException(status_code=400, detail=f"Only @{ALLOWED_DOMAIN} email addresses are allowed.")
+
+    if urgency not in VALID_URGENCIES:
+        urgency = "Medium"
 
     category, confidence = predict(description.strip(), model, vectorizer)
     department  = route(category)
@@ -74,6 +113,10 @@ async def submit_problem(
         image_path = filename
 
     db = SessionLocal()
+
+    # ── Duplicate detection ───────────────────────────────────────────────────
+    duplicate_of = find_duplicate(description.strip(), db)
+
     problem = Problem(
         id=tracking_id,
         description=description.strip(),
@@ -85,6 +128,8 @@ async def submit_problem(
         image_path=image_path,
         student_name=student_name.strip(),
         student_email=student_email.strip().lower(),
+        urgency=urgency,
+        duplicate_of=duplicate_of,
         created_at=datetime.now(timezone.utc).isoformat(),
         updated_at=datetime.now(timezone.utc).isoformat(),
     )
@@ -93,12 +138,14 @@ async def submit_problem(
     db.close()
 
     return {
-        "id":         tracking_id,
-        "category":   category,
-        "confidence": confidence,
-        "department": department,
-        "status":     "Submitted",
-        "image_path": image_path,
+        "id":           tracking_id,
+        "category":     category,
+        "confidence":   confidence,
+        "department":   department,
+        "status":       "Submitted",
+        "image_path":   image_path,
+        "urgency":      urgency,
+        "duplicate_of": duplicate_of,
     }
 
 
@@ -119,6 +166,8 @@ def get_all_problems():
             "image_path":    p.image_path    or "",
             "student_name":  p.student_name  or "",
             "student_email": p.student_email or "",
+            "urgency":       p.urgency       or "Medium",
+            "duplicate_of":  p.duplicate_of  or "",
             "created_at":    p.created_at,
             "updated_at":    p.updated_at,
         }
@@ -160,11 +209,18 @@ def get_stats():
     submitted   = sum(1 for p in problems if p.status == "Submitted")
     in_progress = sum(1 for p in problems if p.status == "In Progress")
     resolved    = sum(1 for p in problems if p.status == "Resolved")
+    duplicates  = sum(1 for p in problems if p.duplicate_of)
     by_dept = {}
     for p in problems:
         by_dept[p.department] = by_dept.get(p.department, 0) + 1
+    by_urgency = {}
+    for p in problems:
+        u = p.urgency or "Medium"
+        by_urgency[u] = by_urgency.get(u, 0) + 1
     return {
         "total": total, "submitted": submitted,
         "in_progress": in_progress, "resolved": resolved,
+        "duplicates": duplicates,
         "by_department": by_dept,
+        "by_urgency": by_urgency,
     }
