@@ -1,21 +1,21 @@
 import { useState, useEffect } from 'react'
 import { api } from '../api'
 import { timeAgo, statusBadgeClass, confBarClass } from '../utils'
+import UrgencyBar from '../components/UrgencyBar'
 
 const ADMIN_PASSWORD = 'admin123'
 const STATUS_OPTIONS = ['Submitted', 'In Progress', 'Resolved']
-const DEPTS = ['All', 'Maintenance', 'Mess Committee', 'Academic Office', 'Security', 'Admin']
+const DEPTS          = ['All', 'Maintenance', 'Mess Committee', 'Academic Office', 'Security', 'Admin']
+const URGENCIES      = ['All', 'Critical', 'High', 'Medium', 'Low']
 
 function LoginScreen({ onLogin }) {
   const [pwd, setPwd] = useState('')
   const [error, setError] = useState('')
-
   function handleLogin(e) {
     e.preventDefault()
     if (pwd === ADMIN_PASSWORD) onLogin()
     else setError('Incorrect password.')
   }
-
   return (
     <div className="auth-wrapper">
       <div className="auth-split" style={{ maxWidth: 560 }}>
@@ -33,11 +33,9 @@ function LoginScreen({ onLogin }) {
           <form onSubmit={handleLogin}>
             <div className="form-group">
               <label>Password</label>
-              <input
-                type="password" value={pwd}
+              <input type="password" value={pwd}
                 onChange={e => { setPwd(e.target.value); setError('') }}
-                placeholder="Enter password…" autoFocus
-              />
+                placeholder="Enter password…" autoFocus />
             </div>
             {error && <div className="alert alert-error">{error}</div>}
             <button type="submit" className="btn btn-primary btn-full">Login →</button>
@@ -69,13 +67,17 @@ function ProblemRow({ problem, onUpdated, onLightbox }) {
   const imgUrl = api.imageUrl(p.image_path)
 
   return (
-    <div className="problem-card">
+    <div className="problem-card" style={p.urgency === 'Critical' ? { borderLeft: '3px solid #ef4444' } : p.urgency === 'High' ? { borderLeft: '3px solid #f97316' } : {}}>
       <div className="row" style={{ cursor: 'pointer' }} onClick={() => setExpanded(x => !x)}>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <code>#{p.id}</code>
           <span className={statusBadgeClass(p.status)}>{p.status}</span>
           <span className="badge badge-other">{p.department}</span>
           {imgUrl && <span className="badge badge-other" title="Has photo">📎</span>}
+          {p.duplicate_of && (
+            <span className="badge" style={{ background: 'var(--warning-bg)', color: 'var(--warning)', border: '1px solid var(--warning-border)' }}
+              title={`Similar to #${p.duplicate_of}`}>⚠ Duplicate of #{p.duplicate_of}</span>
+          )}
         </div>
         <div style={{ display: 'flex', gap: 14, alignItems: 'center', fontSize: 11.5, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
           <span>{timeAgo(p.updated_at)}</span>
@@ -104,6 +106,9 @@ function ProblemRow({ problem, onUpdated, onLightbox }) {
         <span>ai: {conf.toFixed(1)}%</span>
         <span>{timeAgo(p.created_at)}</span>
       </div>
+
+      {/* Urgency bar */}
+      <UrgencyBar urgency={p.urgency} />
 
       <div style={{ marginTop: 10 }}>
         <div className="conf-bar-track">
@@ -143,14 +148,15 @@ function ProblemRow({ problem, onUpdated, onLightbox }) {
 }
 
 export default function AdminDashboard() {
-  const [authed,       setAuthed]       = useState(false)
-  const [problems,     setProblems]     = useState([])
-  const [stats,        setStats]        = useState(null)
-  const [loading,      setLoading]      = useState(true)
-  const [error,        setError]        = useState('')
-  const [filterStatus, setFilterStatus] = useState('All')
-  const [filterDept,   setFilterDept]   = useState('All')
-  const [lightbox,     setLightbox]     = useState(null)
+  const [authed,        setAuthed]        = useState(false)
+  const [problems,      setProblems]      = useState([])
+  const [stats,         setStats]         = useState(null)
+  const [loading,       setLoading]       = useState(true)
+  const [error,         setError]         = useState('')
+  const [filterStatus,  setFilterStatus]  = useState('All')
+  const [filterDept,    setFilterDept]    = useState('All')
+  const [filterUrgency, setFilterUrgency] = useState('All')
+  const [lightbox,      setLightbox]      = useState(null)
 
   async function fetchData() {
     setLoading(true); setError('')
@@ -166,10 +172,17 @@ export default function AdminDashboard() {
   if (!authed) return <LoginScreen onLogin={() => setAuthed(true)} />
 
   const filtered = problems.filter(p => {
-    const okStatus = filterStatus === 'All' || p.status === filterStatus
-    const okDept   = filterDept   === 'All' || p.department === filterDept
-    return okStatus && okDept
+    const okStatus  = filterStatus  === 'All' || p.status    === filterStatus
+    const okDept    = filterDept    === 'All' || p.department === filterDept
+    const okUrgency = filterUrgency === 'All' || p.urgency   === filterUrgency
+    return okStatus && okDept && okUrgency
   })
+
+  // Sort: Critical first, then High, Medium, Low
+  const URGENCY_ORDER = { Critical: 0, High: 1, Medium: 2, Low: 3 }
+  const sorted = [...filtered].sort((a, b) =>
+    (URGENCY_ORDER[a.urgency] ?? 2) - (URGENCY_ORDER[b.urgency] ?? 2)
+  )
 
   return (
     <div>
@@ -191,7 +204,7 @@ export default function AdminDashboard() {
       </div>
 
       {stats && (
-        <div className="metrics-row">
+        <div className="metrics-row" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
           <div className="metric-card">
             <span className="label">Total</span>
             <div className="value">{stats.total}</div>
@@ -208,6 +221,10 @@ export default function AdminDashboard() {
             <span className="label" style={{ color: '#065f46' }}>Resolved</span>
             <div className="value" style={{ color: '#065f46' }}>{stats.resolved}</div>
           </div>
+          <div className="metric-card">
+            <span className="label" style={{ color: '#d97706' }}>Duplicates</span>
+            <div className="value" style={{ color: '#d97706' }}>{stats.duplicates ?? 0}</div>
+          </div>
         </div>
       )}
 
@@ -218,9 +235,12 @@ export default function AdminDashboard() {
         <select value={filterDept} onChange={e => setFilterDept(e.target.value)}>
           {DEPTS.map(d => <option key={d}>{d}</option>)}
         </select>
+        <select value={filterUrgency} onChange={e => setFilterUrgency(e.target.value)}>
+          {URGENCIES.map(u => <option key={u}>{u}</option>)}
+        </select>
         <div className="spacer" />
         <span style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-          {filtered.length} / {problems.length}
+          {sorted.length} / {problems.length}
         </span>
         <button className="btn btn-outline btn-sm" onClick={fetchData}>↺ Refresh</button>
       </div>
@@ -228,14 +248,14 @@ export default function AdminDashboard() {
       {error   && <div className="alert alert-error">{error}</div>}
       {loading && <div className="spinner-wrap"><div className="spinner" /> Loading…</div>}
 
-      {!loading && filtered.length === 0 && (
+      {!loading && sorted.length === 0 && (
         <div className="empty-state">
           <span className="icon">🎉</span>
           <p>No problems match the current filters.</p>
         </div>
       )}
 
-      {filtered.map(p => (
+      {sorted.map(p => (
         <ProblemRow key={p.id} problem={p} onUpdated={fetchData} onLightbox={setLightbox} />
       ))}
     </div>
