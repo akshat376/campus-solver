@@ -363,3 +363,57 @@ code, .tracking-id { font-family: var(--font-mono); color: var(--accent); font-s
   .auth-brand    { width: 100%; padding: 32px 28px; }
   .auth-form-panel { padding: 32px 28px; }
 }
+
+/* ── Urgency bar ─────────────────────────────────────────── */
+.urgency-bar {
+  display: flex; align-items: center; gap: 10px; margin-top: 10px;
+}
+.urgency-track {
+  flex: 1; height: 5px; background: var(--border);
+  border-radius: 999px; overflow: hidden;
+}
+.urgency-fill {
+  height: 100%; border-radius: 999px;
+  transition: width 0.4s ease;
+}
+.urgency-fill.low      { width: 25%;  background: #22c55e; }
+.urgency-fill.medium   { width: 50%;  background: #f59e0b; }
+.urgency-fill.high     { width: 75%;  background: #f97316; }
+.urgency-fill.critical { width: 100%; background: #ef4444; }
+
+.urgency-label {
+  font-size: 11px; font-weight: 700; font-family: var(--font-mono);
+  text-transform: uppercase; letter-spacing: 0.6px; min-width: 52px; text-align: right;
+}
+.urgency-label.low      { color: #16a34a; }
+.urgency-label.medium   { color: #d97706; }
+.urgency-label.high     { color: #ea580c; }
+.urgency-label.critical { color: #dc2626; }
+
+/* Urgency selector pills */
+.urgency-selector {
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+.urgency-pill {
+  padding: 5px 14px; border-radius: 999px; font-size: 12.5px;
+  font-weight: 600; cursor: pointer; border: 1.5px solid;
+  transition: all 0.15s ease; background: transparent;
+  font-family: var(--font-body);
+}
+.urgency-pill.low    { border-color: #22c55e; color: #16a34a; }
+.urgency-pill.low.selected    { background: #22c55e; color: #fff; }
+.urgency-pill.medium { border-color: #f59e0b; color: #d97706; }
+.urgency-pill.medium.selected { background: #f59e0b; color: #fff; }
+.urgency-pill.high   { border-color: #f97316; color: #ea580c; }
+.urgency-pill.high.selected   { background: #f97316; color: #fff; }
+.urgency-pill.critical { border-color: #ef4444; color: #dc2626; }
+.urgency-pill.critical.selected { background: #ef4444; color: #fff; }
+
+/* Duplicate warning */
+.duplicate-warning {
+  padding: 12px 16px; border-radius: var(--radius-sm);
+  background: var(--warning-bg); border: 1px solid var(--warning-border);
+  color: var(--warning); font-size: 13.5px; margin-bottom: 16px;
+  display: flex; align-items: flex-start; gap: 10px;
+}
+.duplicate-warning strong { font-weight: 700; }
