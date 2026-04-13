@@ -23,8 +23,10 @@ class Problem(Base):
     created_at    = Column(String, default="")
     updated_at    = Column(String, default="")
     image_path    = Column(String, default="")
-    student_name  = Column(String, default="")   # logged-in user's name
-    student_email = Column(String, default="")   # logged-in user's email
+    student_name  = Column(String, default="")
+    student_email = Column(String, default="")
+    urgency       = Column(String, default="Medium")   # Low | Medium | High | Critical
+    duplicate_of  = Column(String, default="")         # ID of original complaint if duplicate
 
 
 Base.metadata.create_all(bind=engine)
