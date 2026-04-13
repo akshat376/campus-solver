@@ -13,12 +13,12 @@ async function request(path, options = {}) {
 }
 
 export const api = {
-  // Sends description + optional image + student name/email
-  submit: (description, imageFile, studentName, studentEmail) => {
+  submit: (description, imageFile, studentName, studentEmail, urgency) => {
     const form = new FormData()
     form.append('description',   description)
     form.append('student_name',  studentName  || '')
     form.append('student_email', studentEmail || '')
+    form.append('urgency',       urgency      || 'Medium')
     if (imageFile) form.append('image', imageFile)
 
     return fetch(`${BASE}/submit`, { method: 'POST', body: form }).then(async res => {
@@ -30,9 +30,9 @@ export const api = {
     })
   },
 
-  getAll:   ()                       => request('/problems'),
-  getOne:   (id)                     => request(`/problems/${id}`),
-  update:   (id, status, response)   => request(`/update/${id}`, { method: 'POST', body: JSON.stringify({ status, response }) }),
-  stats:    ()                       => request('/stats'),
-  imageUrl: (imagePath)              => imagePath ? `${BASE}/images/${imagePath}` : null,
+  getAll:   ()                     => request('/problems'),
+  getOne:   (id)                   => request(`/problems/${id}`),
+  update:   (id, status, response) => request(`/update/${id}`, { method: 'POST', body: JSON.stringify({ status, response }) }),
+  stats:    ()                     => request('/stats'),
+  imageUrl: (imagePath)            => imagePath ? `${BASE}/images/${imagePath}` : null,
 }
